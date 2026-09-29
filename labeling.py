@@ -9,7 +9,7 @@ folders = {
     "2": "Breaking",
     "3": "Ripe_first_stage",
     "4": "Ripe_second_stage",
-    "5": "verripe"
+    "5": "Overripe"
 }
 
 df = pd.read_excel("Avocado Ripening Dataset.xlsx")

@@ -29,20 +29,20 @@ class Avocado_detector:
         top1_conf = result.probs.top1conf.item()
 
         # Use YOUR mapping instead of result.names
-        if top1_conf >= 0.8:
-            top1_name = self.class_names[top1]
 
-            text = f"{top1_name}: {top1_conf:.2f}"
+        top1_name = self.class_names[top1]
 
-            cv2.putText(
-                frame,
-                text,
-                (20, 50),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1.2,
-                (0, 255, 0),
-                3
-            )
+        # text = f"{top1_name}: {top1_conf:.2f}"
 
-        return frame
+        # cv2.putText(
+        #     frame,
+        #     text,
+        #     (20, 50),
+        #     cv2.FONT_HERSHEY_SIMPLEX,
+        #     1.2,
+        #     (0, 255, 0),
+        #     3
+        # )
+
+        return frame, top1_name, top1_conf
 
