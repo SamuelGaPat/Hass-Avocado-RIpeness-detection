@@ -21,9 +21,8 @@ CAMERA_WIDTH = 1280
 CAMERA_HEIGHT = 720
 
 # Fixed size for information boxes
-INFO_BOX_WIDTH = 300
-INFO_BOX_HEIGHT = 220
-
+INFO_BOX_WIDTH = 500
+INFO_BOX_HEIGHT = 300
 
 # =============================================================
 # PLACEHOLDER IMAGE
@@ -39,11 +38,11 @@ PLACEHOLDER = base64.b64decode(
 # =============================================================
 
 STATUS_COLORS = {
-    "Breaking": ft.Colors.AMBER_700,
-    "Ripe_first_stage": ft.Colors.LIGHT_GREEN_700,
-    "Ripe_second_stage": ft.Colors.GREEN_700,
-    "Underripe": ft.Colors.BLUE_700,
-    "Overripe": ft.Colors.RED_700,
+    "Breaking": "#2b3a06",
+    "Ripe_first_stage": "#6b522d",
+    "Ripe_second_stage": "#67502B",
+    "Underripe": "#908c48",
+    "Overripe": "#25031f",
 }
 
 
@@ -219,15 +218,13 @@ async def main(page: ft.Page):
 
     page.window.full_screen = True
 
-    page.window.resizable = False
-
     # =========================================================
     # TITLE
     # =========================================================
 
     title = ft.Text(
         "Hass Avocado Ripeness Classification",
-        size=30,
+        size=80 ,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.WHITE,
         text_align=ft.TextAlign.CENTER,
@@ -247,6 +244,8 @@ async def main(page: ft.Page):
         gapless_playback=True,
 
         expand=True,
+
+        border_radius=20,
     )
 
     video_container = ft.Container(
@@ -258,7 +257,7 @@ async def main(page: ft.Page):
 
         alignment=ft.Alignment.CENTER,
 
-        border_radius=10,
+        border_radius=20,
     )
 
     # =========================================================
@@ -267,7 +266,7 @@ async def main(page: ft.Page):
 
     status_title = ft.Text(
         "Avocado status",
-        size=22,
+        size=40,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.WHITE,
         text_align=ft.TextAlign.CENTER,
@@ -275,7 +274,7 @@ async def main(page: ft.Page):
 
     status_value = ft.Text(
         "Waiting...",
-        size=28,
+        size=30,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.WHITE,
         text_align=ft.TextAlign.CENTER,
@@ -316,14 +315,14 @@ async def main(page: ft.Page):
 
     accuracy_title = ft.Text(
         "Accuracy",
-        size=22,
+        size=40,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.WHITE,
         text_align=ft.TextAlign.CENTER,
     )
 
     accuracy_value = ft.Text(
-        "0.00%",
+        "*",
         size=30,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.WHITE,
@@ -352,7 +351,7 @@ async def main(page: ft.Page):
         width=INFO_BOX_WIDTH,
         height=INFO_BOX_HEIGHT,
 
-        bgcolor=ft.Colors.GREY_900,
+        bgcolor=ft.Colors.GREY_700 if accuracy_value.value == "*" else ft.Colors.GREY_900,
 
         border_radius=15,
 
@@ -393,7 +392,17 @@ async def main(page: ft.Page):
         top1_name,
         top1_conf,
     ):
+        confidence = float(top1_conf)
 
+        # If confidence is returned as 0-1
+        if confidence <= 1:
+            confidence *= 100
+        
+        accuracy_value.value = (
+            f"{confidence:.2f}%" if confidence > 80 else "*"
+        )
+
+        accuracy_value.update()
         # -----------------------------------------------------
         # UPDATE CAMERA
         # -----------------------------------------------------
@@ -407,7 +416,7 @@ async def main(page: ft.Page):
 
         label = str(top1_name)
 
-        status_value.value = label
+        status_value.value = label if confidence > 80 else "Waiting..."
 
         # -----------------------------------------------------
         # CHANGE STATUS COLOR
@@ -416,7 +425,7 @@ async def main(page: ft.Page):
         status_color = STATUS_COLORS.get(
             label,
             ft.Colors.GREY_700,
-        )
+        ) if confidence > 80 else ft.Colors.GREY_700
 
         status_container.bgcolor = status_color
 
@@ -430,17 +439,7 @@ async def main(page: ft.Page):
         # UPDATE ACCURACY
         # -----------------------------------------------------
 
-        confidence = float(top1_conf)
 
-        # If confidence is returned as 0-1
-        if confidence <= 1:
-            confidence *= 100
-
-        accuracy_value.value = (
-            f"{confidence:.2f}%"
-        )
-
-        accuracy_value.update()
 
     # =========================================================
     # ERROR CALLBACK

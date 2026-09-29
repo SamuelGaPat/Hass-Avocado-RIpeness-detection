@@ -32,17 +32,6 @@ class Avocado_detector:
 
         top1_name = self.class_names[top1]
 
-        # text = f"{top1_name}: {top1_conf:.2f}"
-
-        # cv2.putText(
-        #     frame,
-        #     text,
-        #     (20, 50),
-        #     cv2.FONT_HERSHEY_SIMPLEX,
-        #     1.2,
-        #     (0, 255, 0),
-        #     3
-        # )
 
         return frame, top1_name, top1_conf
 
