@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import math
 import platform
 
 import cv2
@@ -14,7 +15,7 @@ import detection
 # CONFIGURATION
 # =============================================================
 
-CAMERA_INDEX = 0
+CAMERA_INDEX = 1
 
 # Reduced camera resolution
 CAMERA_WIDTH = 1280
@@ -83,33 +84,41 @@ class CameraWorker:
         self._task = None
 
     def _grab_and_classify(self, cap):
-        """
-        Runs in a worker thread.
 
-        Captures a reduced-resolution frame and sends the
-        raw OpenCV frame to detection.classify().
-        """
 
         ok, raw_frame = cap.read()
 
+        detector = detection.Avocado_detector()
+
         if not ok:
             return None
+        # height, width = raw_frame.shape[:2]
+        
+        # print(f"Incoming frame resolution: {width} x {height}")
 
+        cropped_frame = raw_frame[140:940,560:1360]
         # ---------------------------------------------------------
         # CLASSIFICATION
         # ---------------------------------------------------------
-        detector = detection.Avocado_detector()
+
         frame, top1_name, top1_conf = detector.classify(
-            raw_frame
+            cropped_frame
         )
 
         # ---------------------------------------------------------
         # ENCODE FRAME FOR FLET
         # ---------------------------------------------------------
+        cv2.rectangle(
+            raw_frame,
+            (560,140),
+            (1360,940),
+            (255,255,255),
+            thickness=10,
+        )
 
         ok, buffer = cv2.imencode(
             ".jpg",
-            frame,
+            raw_frame,
             [cv2.IMWRITE_JPEG_QUALITY, 80],
         )
 
@@ -151,15 +160,15 @@ class CameraWorker:
             # REDUCE CAMERA RESOLUTION
             # =====================================================
 
-            cap.set(
-                cv2.CAP_PROP_FRAME_WIDTH,
-                CAMERA_WIDTH,
-            )
+            # cap.set(
+            #     cv2.CAP_PROP_FRAME_WIDTH,
+            #     CAMERA_WIDTH,
+            # )
 
-            cap.set(
-                cv2.CAP_PROP_FRAME_HEIGHT,
-                CAMERA_HEIGHT,
-            )
+            # cap.set(
+            #     cv2.CAP_PROP_FRAME_HEIGHT,
+            #     CAMERA_HEIGHT,
+            # )
 
             # =====================================================
             # CAMERA LOOP
@@ -206,8 +215,8 @@ async def main(page: ft.Page):
     # =========================================================
 
     page.title = "Hass Avocado Ripeness Classification"
+    
 
-    page.theme_mode = ft.ThemeMode.DARK
 
     # Remove all margins
     page.padding = 0
@@ -220,15 +229,34 @@ async def main(page: ft.Page):
 
     # =========================================================
     # TITLE
-    # =========================================================
-
+    # ===========================
+    # =========================
     title = ft.Text(
-        "Hass Avocado Ripeness Classification",
-        size=80 ,
-        weight=ft.FontWeight.BOLD,
-        color=ft.Colors.WHITE,
+        "Ripeness Classification",
+        size=100,
+        weight=ft.FontWeight.W_900,
+        color="#356515",
         text_align=ft.TextAlign.CENTER,
     )
+
+    title_2 = ft.Text(
+        "Hass Avocado",
+        size=50,
+        weight=ft.FontWeight.W_900,
+        color="#356515",
+        text_align=ft.TextAlign.CENTER,
+    )
+
+    title_3 = ft.Column(
+        [
+            title,
+            title_2,
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=0,
+    )
+        
 
     # =========================================================
     # VIDEO
@@ -236,24 +264,49 @@ async def main(page: ft.Page):
 
     video = ft.Image(
         src=PLACEHOLDER,
-
-        # Keep camera aspect ratio
         fit=ft.BoxFit.CONTAIN,
-
-        # Prevent flickering
         gapless_playback=True,
-
         expand=True,
-
         border_radius=20,
     )
 
+    video_with_shadow = ft.Container(
+        content=video,
+        expand=True,
+        border_radius=20,
+        shadow=ft.BoxShadow(
+            spread_radius=3,
+            blur_radius=20,
+            color= "#67502B",
+            offset=ft.Offset(0, 5), # Desplazamiento x, y
+        ),
+    )
+
+    video_container = ft.Container(
+        content=video_with_shadow,
+        expand=True,
+        alignment=ft.Alignment.CENTER,
+    )
+    avocado_png = ft.Image(
+        src="avocado.png",
+        width=300,
+        height=300,
+        fit=ft.BoxFit.CONTAIN,
+    )
+
+    avocado_container = ft.Container(
+        content=avocado_png,
+        width=300,
+        height=300,
+        alignment=ft.Alignment.CENTER,
+    )
+    
     video_container = ft.Container(
         content=video,
 
         expand=True,
 
-        bgcolor=ft.Colors.BLACK,
+        # bgcolor=ft.Colors.BLACK,
 
         alignment=ft.Alignment.CENTER,
 
@@ -296,17 +349,26 @@ async def main(page: ft.Page):
             ),
 
             spacing=15,
+
         ),
 
         # FIXED SIZE
         width=INFO_BOX_WIDTH,
         height=INFO_BOX_HEIGHT,
 
-        bgcolor=ft.Colors.GREY_900,
+        bgcolor=ft.Colors.GREY_700,
 
         border_radius=15,
 
         padding=20,
+
+        shadow=ft.BoxShadow(
+            spread_radius=3,
+            blur_radius=20,
+            color= "#67502B",
+            offset=ft.Offset(0, 5), # Desplazamiento x, y
+        ),
+        margin=ft.Margin.only(top=30),
     )
 
     # =========================================================
@@ -351,11 +413,18 @@ async def main(page: ft.Page):
         width=INFO_BOX_WIDTH,
         height=INFO_BOX_HEIGHT,
 
-        bgcolor=ft.Colors.GREY_700 if accuracy_value.value == "*" else ft.Colors.GREY_900,
+        bgcolor=ft.Colors.GREY_700,
 
         border_radius=15,
 
         padding=20,
+        margin=ft.Margin.only(top=80),
+        shadow=ft.BoxShadow(
+            spread_radius=1,
+            blur_radius=15,
+            color= "#67502B",
+            offset=ft.Offset(0, 5), # Desplazamiento x, y
+        ),
     )
 
     # =========================================================
@@ -381,8 +450,9 @@ async def main(page: ft.Page):
         padding=10,
 
         alignment=ft.Alignment.CENTER,
+        margin=ft.Margin.only(right=30)
     )
-
+    
     # =========================================================
     # CAMERA CALLBACK
     # =========================================================
@@ -399,10 +469,15 @@ async def main(page: ft.Page):
             confidence *= 100
         
         accuracy_value.value = (
-            f"{confidence:.2f}%" if confidence > 80 else "*"
+            f"{confidence:.2f}%" #if confidence > 80 else "*"
         )
+        if accuracy_value.value == "*":
+            accuracy_container.bgcolor = ft.Colors.GREY_700
+        else:
+            accuracy_container.bgcolor = "#D89465"
 
         accuracy_value.update()
+        accuracy_container.update()
         # -----------------------------------------------------
         # UPDATE CAMERA
         # -----------------------------------------------------
@@ -416,7 +491,7 @@ async def main(page: ft.Page):
 
         label = str(top1_name)
 
-        status_value.value = label if confidence > 80 else "Waiting..."
+        status_value.value = label #if confidence > 80 else "Waiting..."
 
         # -----------------------------------------------------
         # CHANGE STATUS COLOR
@@ -488,47 +563,60 @@ async def main(page: ft.Page):
     # =========================================================
 
     page.add(
-        ft.Column(
-            [
-                # -------------------------------------------------
-                # TITLE
-                # -------------------------------------------------
-
-                ft.Container(
-                    content=title,
-
-                    padding=ft.Padding(
-                        top=15,
-                        bottom=15,
-                        left=10,
-                        right=10,
-                    ),
-
-                    alignment=ft.Alignment.CENTER,
-                ),
-
-                # -------------------------------------------------
-                # CAMERA + INFORMATION
-                # -------------------------------------------------
-
-                ft.Row(
-                    [
-                        # Camera
-                        video_container,
-
-                        # Information
-                        information_panel,
-                    ],
-
-                    expand=True,
-
-                    spacing=10,
-                ),
-            ],
-
+        ft.Container(
             expand=True,
 
-            spacing=0,
+            gradient=ft.LinearGradient(
+                begin=ft.Alignment.TOP_LEFT,
+                end=ft.Alignment(0.8, 1),
+                tile_mode=ft.GradientTileMode.MIRROR,
+                rotation=math.pi / 3,
+                colors=[
+                    "#D8D881",
+                    "#C0B54B"
+                ],
+            ),
+
+            content=ft.Column(
+                [   
+                    ft.Row(
+                        [
+                            ft.Container(
+                                content=title_3,
+
+                                padding=ft.Padding(
+                                    top=15,
+                                    bottom=0,
+                                    left=10,
+                                    right=10,
+                                ),
+
+                                alignment=ft.Alignment.CENTER,
+                            ),
+
+                            avocado_container,
+                        ],
+
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=20,
+                    ),
+                                    
+
+                    ft.Row(
+                        [
+                            video_container,
+                            information_panel,
+                        ],
+
+                        expand=True,
+                        spacing=10,
+                    ),
+                ],
+
+                expand=True,
+                spacing=0,
+            ),
         )
     )
 
