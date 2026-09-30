@@ -56,8 +56,11 @@ python interface.py
 
 ### 5. Set camera exposure and illumination
 
-The camera automatically adjusts exposure, making it difficult to maintain controlled illumination. On Linux, `v4l2-ctl` can be used to configure exposure manually. For example, these commands target `/dev/video2`:
-
+The camera automatically adjusts exposure, making it difficult to maintain controlled illumination. On Linux, `v4l2-ctl` can be used to configure exposure manually. In order to see your devices, you can use this commad:
+```bash
+v4l2-ctl --list-devices
+```
+These commands target `/dev/video2`:
 ```bash
 v4l2-ctl -d /dev/video2 --set-ctrl=auto_exposure=1
 v4l2-ctl -d /dev/video2 --set-ctrl=exposure_time_absolute=80
