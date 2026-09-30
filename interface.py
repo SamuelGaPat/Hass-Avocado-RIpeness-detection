@@ -92,6 +92,12 @@ class CameraWorker:
 
         if not ok:
             return None
+        # alpha = 1.3
+
+        # # Brightness
+        # beta = 30
+
+        # raw_frame = cv2.convertScaleAbs(raw_frame, alpha=alpha, beta=beta)
         # height, width = raw_frame.shape[:2]
         
         # print(f"Incoming frame resolution: {width} x {height}")
@@ -155,7 +161,17 @@ class CameraWorker:
                 )
 
                 return
+                # Disable automatic exposure
+            cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 
+            # Set manual exposure
+            cap.set(cv2.CAP_PROP_EXPOSURE, -6)
+
+            # Disable autofocus
+            cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+
+            # Set manual focus
+            cap.set(cv2.CAP_PROP_FOCUS, 50)
             # =====================================================
             # REDUCE CAMERA RESOLUTION
             # =====================================================
@@ -469,7 +485,7 @@ async def main(page: ft.Page):
             confidence *= 100
         
         accuracy_value.value = (
-            f"{confidence:.2f}%" #if confidence > 80 else "*"
+            f"{confidence:.2f}%" if confidence > 60 else "*"
         )
         if accuracy_value.value == "*":
             accuracy_container.bgcolor = ft.Colors.GREY_700
@@ -491,7 +507,7 @@ async def main(page: ft.Page):
 
         label = str(top1_name)
 
-        status_value.value = label #if confidence > 80 else "Waiting..."
+        status_value.value = label if confidence > 60 else "Waiting..."
 
         # -----------------------------------------------------
         # CHANGE STATUS COLOR
@@ -500,7 +516,7 @@ async def main(page: ft.Page):
         status_color = STATUS_COLORS.get(
             label,
             ft.Colors.GREY_700,
-        ) if confidence > 80 else ft.Colors.GREY_700
+        ) if confidence > 60 else ft.Colors.GREY_700
 
         status_container.bgcolor = status_color
 
